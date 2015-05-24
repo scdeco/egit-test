@@ -1,20 +1,23 @@
 package com.scdeco.embdesign;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
-import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.List;
+
+import org.imgscalr.Scalr;
 
 import com.google.common.base.CharMatcher;
-import org.jdesktop.dataset.DataTable;
+import com.google.common.primitives.Ints;
+
 
 public class EMBDesignControl 
 {
@@ -30,34 +33,8 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 		public int yCurrent;
 		public int xChange;
 		public int yChange;	
-		/*public StitchPoint()
-		{
-			this.indexStep = 0;
-			this.funcCode = FunctionCode.STOP;
-			this.xCoord = 0;
-			this.xChange = 0;
-			this.xCurrent = 0;
-			this.yCoord = 0;
-			this.yChange = 0;
-			this.yCurrent = 0;
-		}*/
 	}
 	
-	final class EmbroideryThread
-	{
-		public String name;
-		public String code; 
-		public Color color;
-		/*
-		 public EmbroideryThread()
-		 {
-		 	this.name = "";
-		 	this.code = ""'
-		 	this.color = new Color(0,0,0,1);
-		 }
-		 */
-		
-	}
 	final class RunningStep
 	{
 		public int threadIndex;
@@ -65,14 +42,6 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 		public int length;
 		public int firstStitchIndex;
 		public int lastStitchIndex;
-		/*public RunningStep()
-		{
-			this.threadIndex = 0;
-			this.stitches = 0;
-			this.length = 0;
-			this.firstStitchIndex = 0;
-			this.lastStitchIndex = 0; 
-		}*/
 	}
 	
 	public static final int maxThreads = 15; 
@@ -147,12 +116,12 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 	{
 		this.threadList = threadList;
 	}
-	private ArrayList<String> stitchPointList;
-	public ArrayList<String> getStitchPointList()
+	private ArrayList<StitchPoint> stitchPointList;
+	public ArrayList<StitchPoint> getStitchPointList()
 	{
 		return this.stitchPointList;
 	}
-	public void setStitchPointList(ArrayList<String> stitchPointList)
+	public void setStitchPointList(ArrayList<StitchPoint> stitchPointList)
 	{
 		this.stitchPointList = stitchPointList;
 	}
@@ -239,15 +208,31 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 	private Boolean regetStitchesFlag = false;
 	private Image image;
 	private BufferedImage designBufferedImage;
+	
+	private Boolean m_trim = true;
+	public void setM_trim(Boolean m_trim) {
+		this.m_trim = m_trim;
+	}
 	private float zoomFactor;
+		public float getZoomFactor() {
+		return zoomFactor;
+	}
+	public void setZoomFactor(float zoomFactor) {
+		this.zoomFactor = zoomFactor;
+	}
+	
 	private float rotateAngle;
-
-
+	public float getRotateAngle() {
+		return rotateAngle;
+	}
+	public void setRotateAngle(float rotateAngle) {
+		this.rotateAngle = rotateAngle;
+	}
 	
 	
 	public EMBDesignControl()
 	{
-		this.stitchPointList = new ArrayList<String>();
+		this.stitchPointList = new ArrayList<StitchPoint>();
 		this.runningStepList = new ArrayList<String>();
 		this.threadList = new EmbroideryThread[maxThreads+2];
 		this.ptTopLeft = new Point(0,0);
@@ -357,7 +342,7 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 			{
 				st[i].xCurrent = st[i].xCoord - this.ptTopLeft.x;
 				st[i].yCurrent = this.ptTopLeft.y - st[i].yCoord;
-				this.stitchPointList.add(st[i].toString());
+				this.stitchPointList.add(st[i]);
 				if(st[i].indexStep != pindex)
 				{
 					this.stepList[pindex].lastStitchIndex = i -1;
@@ -385,25 +370,57 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 		if (this.stitchPointList.size() == 0) {return;}
 		redrawFlag = false;
 		SetRunningStepList();
-		SetEmbThreadList();
+		setEmbThreadList();
 		StitchPoint currStitch;
 		StitchPoint prevStitch;
-		designBufferedImage = new BufferedImage(this.ptBottomRight.x - this.ptTopLeft.x +1
-				,this.ptTopLeft.y-this.ptBottomRight.y+1,BufferedImage.TYPE_INT_ARGB);
+		int length = this.ptBottomRight.x - this.ptTopLeft.x +1;
+		int width = this.ptTopLeft.y-this.ptBottomRight.y+1;
+		designBufferedImage = new BufferedImage(length,width,BufferedImage.TYPE_INT_ARGB);
 		Graphics2D graphics = designBufferedImage.createGraphics();
-		int iThread = 0;
+		Integer iThread = 0;
+		graphics.setBackground(new Color(255,255,255,255));
+		graphics.clearRect(0, 0, length, width);
+		prevStitch = (StitchPoint)this.stitchPointList.get(0);
+		ArrayList<String> runningStepList = this.highLightStepList.size() > 0 ? this.highLightStepList: this.runningStepList;
+		for (int i =1 ; i < this.stitchPointList.size(); i++)
+		{
+			currStitch = (StitchPoint)this.stitchPointList.get(i);
+			iThread = Ints.tryParse(runningStepList.get(prevStitch.indexStep).toString());
+			if ( iThread != null )
+			{
+				iThread = iThread < this.threadList.length ? iThread : 0;
+				graphics.setColor(this.threadList[iThread].color);
+				if (currStitch.funcCode == FunctionCode.JUMP||prevStitch.funcCode == FunctionCode.JUMP 
+						|| prevStitch.funcCode == FunctionCode.STOP)
+				{
+					if (!m_trim)
+					{
+						float[] dash1 = {2f,0f,2f};
+						BasicStroke bs1 = new BasicStroke(1,BasicStroke.CAP_BUTT,BasicStroke.JOIN_ROUND,1.0f,dash1,2f);
+						graphics.setStroke(bs1);
+						graphics.drawLine(prevStitch.xCurrent,prevStitch.yCurrent,currStitch.xCurrent,currStitch.yCurrent);
+					}
+					else
+					{
+						BasicStroke bs2 =  new BasicStroke(1,BasicStroke.CAP_BUTT,BasicStroke.JOIN_ROUND);
+						graphics.setStroke(bs2);
+						graphics.drawLine(prevStitch.xCurrent,prevStitch.yCurrent,currStitch.xCurrent,currStitch.yCurrent);
+					}
+				}
+			}
+		}
 		
 	}
-	public void showDesign( Boolean redraw, Boolean regetStitches, float angle) throws IOException
+	public void getDesignImage( Boolean redraw, Boolean regetStitches, float angle) throws IOException
 	{
 		this.rotateAngle = angle;
-		showDesign(redraw, regetStitches);
+		getDesignImage(redraw, regetStitches);
 	}
-	public void showDesign(Boolean redraw, Boolean regetSitches) throws IOException
+	public void getDesignImage(Boolean redraw, Boolean regetSitches) throws IOException
 	{
 		if (this.regetStitchesFlag) {getStitchPoints();}
 		if (this.redrawFlag|redraw) {drawDesign();}
-		this.sizeMode = 
+		rotateImage(this.designBufferedImage, this.rotateAngle); 
 	}
 	private void rotateImage(Image img, float angle)
 	{
@@ -501,7 +518,7 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 		}
 	}
 	
-	public void setThreads(String sColorWay, DataTable dtThread)
+	public void setThreads(String sColorWay)
 	{
 		String[] sColorCodes = sColorWay.split(",");
 		String sThread = "";
@@ -510,13 +527,180 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 		{
 			if (sCode != "")
 			{
-				EmbroideryThread thread = getEmbroideryThread(sCode, dtThread);
+				EmbroideryThread thread = EMBThreadChart.getEmbroideryThread(sCode);
+				sThread += thread.code + ":" + thread.name + ":" + thread.color.toString()+",";
+			}
+			else
+			{
+				hasErrorInColorWay = true;
+				break;
+			}
+		}
+		if (hasErrorInColorWay){sThread = "";}
+		if (sThread != "") {sThread.substring(0, sThread.length() - 1);}
+		this.threads = sThread;
+	}
+	
+
+	public static List<EmbroideryThread> getEMBThreadListFromColorway(String sColorway)
+	{
+		List<EmbroideryThread> threadList = new ArrayList<EmbroideryThread>();
+		String[] sColorCodes = sColorway.split(",");
+		for(String sCode:sColorCodes)
+		{
+			if (sCode != "")
+			{
+				EmbroideryThread thread = EMBThreadChart.getEmbroideryThread(sCode);
+				threadList.add(thread);
+			}
+			else {break;}
+		}
+		return threadList;
+	}
+	private void setEmbThreadList() 
+	{
+		this.threads = threads.trim();
+		this.threads = CharMatcher.is(',').trimFrom(threads).toUpperCase();
+		if (this.threads == ""){loadDefaultThreadList();}
+		else
+		{
+			this.threadList[0].color = this.bgThreadColor;
+			this.threadList[16].color = this.cursorThreadColor;
+			EmbroideryThread t = new EmbroideryThread();
+			t.code = "";
+			t.name = "";
+			t.color = this.bgThreadColor;
+			for ( int k =1; k <= maxThreads; k++) {this.threadList[k] = t;}
+			String s = this.threads+ ",";
+			int i = 1;
+			int j = 1;
+			int m = 1;
+			while(s.contains(","))
+			{
+				i = s.indexOf(',');
+				String ss = s.substring(0,i);
+				m = ss.indexOf(':');
+				if ( m >= 0)
+				{
+					t.name = ss.substring(0, m);
+					ss = ss.substring(m+1);
+				}
+				int l = Integer.parseInt(ss);
+				t.color = new Color(1>>16&255,1>>8&255,1&255);
+				this.threadList[j++]=t;
+				s=s.substring(i+1);
 			}
 		}
 	}
-	
-	private void SetEmbThreadList() {
-		// TODO Auto-generated method stub
-		
+	public EmbroideryThread[] getEmbroideryThreadlist()
+	{
+		EmbroideryThread[] threads = (EmbroideryThread[])(this.threadList.clone());
+		return threads;
 	}
+	public ArrayList<String> GetRunningStepList()
+	{
+		@SuppressWarnings("unchecked")
+		ArrayList<String> steps = (ArrayList<String>) this.runningStepList.clone();
+		return steps;
+	}
+
+	public BufferedImage GetDesignThumbnail(int thumbnailSize)
+	{
+		BufferedImage thumbnail = null;
+		if (this.image != null)
+		{
+			double designHeight = this.getDesignHeight();
+			double desighWidth = this.getDeignWidth();
+			double ratio = designHeight/desighWidth;
+			double length = (double)thumbnailSize;
+			int width = (int)( ratio > 1 ? (length/ratio) : length);
+			int height = (int)(ratio > 1 ? length : (length * ratio));
+			thumbnail = Scalr.resize((BufferedImage)this.image,width,height,Scalr.OP_ANTIALIAS);
+		}
+		return thumbnail;
+	}
+	
+
+	public static String getNormalizedThreadCode(String sCode)
+	{
+		sCode=sCode.trim().toUpperCase();
+		if ((sCode != null) && !sCode.isEmpty() && !sCode.trim().isEmpty())
+		{
+			Integer n = Ints.tryParse(sCode);
+			if (("MS6".contains(sCode.substring(0, 1)) & sCode.length() == 4) &&  n != null)
+			{
+				sCode = "S" + sCode;
+			}	
+		}
+		return sCode;
+	}
+	public static EmbroideryThread getEmbroideryThread(String code)
+	{
+		EmbroideryThread thread = new EmbroideryThread();
+		thread.code = "";
+		thread.name = "";
+		thread.color = null;
+		code = getNormalizedThreadCode(code);
+		if ((code != null) && !code.isEmpty() && !code.trim().isEmpty())
+		{
+			thread.code = code;
+			
+		}
+		return thread;
+	}
+	private static String runningStepsSeperator = "[\\-+*/.:;,]";
+	/*public static String getNormalizedRunningStep()
+	{
+		string runningStep = 
+		return normalizeRunningStept(runningStep);
+	}*/
+	public static String normalizeRunningStep(String runningStep)
+	{
+		if( runningStep != "")
+		{
+			String[] steps = runningStep.split(runningStepsSeperator);
+			runningStep = "";
+			boolean isZeros =  true;
+			for(String step : steps)
+			{
+				String s = step.trim();
+				if (s != "")
+				{
+					Integer i = Ints.tryParse(s);
+					runningStep += "-" + i.toString();
+					if ( i>0) {isZeros = false;}
+					
+				}
+			}
+			runningStep = isZeros? "":runningStep.substring(1);
+		}
+		return runningStep;
+	}
+	public String getColorWay()
+	{
+		String sColorway = "";
+		for(EmbroideryThread thread : this.threadList)
+		{
+			if((thread.code == null) || thread.code.isEmpty() || thread.code.trim().isEmpty())
+			{
+				sColorway += thread.code+",";
+			}
+		}
+		if (sColorway != "")
+		{
+			sColorway = sColorway.substring(0, sColorway.length()-1);
+		}
+		return sColorway;
+	}
+	/*public static String getColorway()
+	{
+		String colorway = "";
+		String sThreadCodes = "";
+		for (Integer i =1; i <= 15; i++)
+		{
+			String col = "sColor"+i.toString();
+			String s = 
+		}
+		return colorway;
+	}*/
 }

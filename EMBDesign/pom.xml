@@ -3,4 +3,13 @@
   <groupId>com.scdeco.util</groupId>
   <artifactId>EMBDesign</artifactId>
   <version>0.0.1-SNAPSHOT</version>
+  <dependencies>
+  <dependency>
+    <groupId>org.imgscalr</groupId>
+    <artifactId>imgscalr-lib</artifactId>
+    <version>4.2</version>
+    <type>jar</type>
+    <scope>compile</scope>
+  </dependency>
+</dependencies>
 </project>
