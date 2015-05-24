@@ -47,15 +47,12 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 	public static final int maxThreads = 15; 
 	
 	private String highlightSteps = "";
-	public String getHighlightSteps()
-	{
-		return this.highlightSteps;
-	}
 	public void setHighlightSteps(String highlightSteps)
 	{
 		this.highlightSteps = highlightSteps;
 		this.redrawFlag = true;
 	}
+	
 	private String runningSteps = "";
 	public String getRunningSteps()
 	{
@@ -67,19 +64,13 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 		redrawFlag = true;
 		SetRunningStepList();
 	}
+	
 	private ArrayList<String> runningStepList;
-	public ArrayList<String> getRunningStepList()
+	private ArrayList<String> highlightStepList = new ArrayList<String>();
+	
+	public int getColorCount()
 	{
-		return this.runningStepList;
-	}
-	public void setRunningStepList(ArrayList<String> runningStepList)
-	{
-		this.runningStepList = runningStepList;
-	}
-	private ArrayList<String> highLightStepList = new ArrayList<String>();
-	private int colors;
-	public int getColors()
-	{
+		int colors=0;
 		int i = 1;
 		if (this.threadList != null)
 		{
@@ -89,24 +80,39 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 						|| this.threadList[i].code.trim().isEmpty()) {break;}
 				i++;
 			}
-			this.colors = --i;
+			colors = --i;
 		}		
-		else {this.colors = 0;}
-		return this.colors;
+		return colors;
 	}
-	public void setColors(int colors)
-	{
-		this.colors = colors;
-	}
+
 	private String threads;
 	public String getThreads()
 	{
 		return this.threads;
 	}
-	public void setThread(String threads)
+	public void setThreads(String sColorWay)
 	{
-		this.threads =threads;
+		String[] sColorCodes = sColorWay.split(",");
+		String sThread = "";
+		Boolean hasErrorInColorWay = false;
+		for( String sCode : sColorCodes)
+		{
+			if (sCode != "")
+			{
+				EmbroideryThread thread = EMBThreadChart.getEmbroideryThread(sCode);
+				sThread += thread.code + ":" + thread.name + ":" + thread.color.toString()+",";
+			}
+			else
+			{
+				hasErrorInColorWay = true;
+				break;
+			}
+		}
+		if (hasErrorInColorWay){sThread = "";}
+		if (sThread != "") {sThread.substring(0, sThread.length() - 1);}
+		this.threads = sThread;
 	}
+	
 	private EmbroideryThread[] threadList;
 	public EmbroideryThread[] getThreadList()
 	{
@@ -116,6 +122,7 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 	{
 		this.threadList = threadList;
 	}
+	
 	private ArrayList<StitchPoint> stitchPointList;
 	public ArrayList<StitchPoint> getStitchPointList()
 	{
@@ -125,6 +132,7 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 	{
 		this.stitchPointList = stitchPointList;
 	}
+	
 	private RunningStep[] stepList;
 	public RunningStep[] getStepList()
 	{
@@ -134,6 +142,7 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 	{
 		this.stepList = stepList;
 	}
+	
 	private String dstFile = "";
 	public String getDstFile()
 	{
@@ -145,25 +154,29 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 		this.dstFile = dstFile;
 		regetStitchesFlag = true;
 	}
+	
 	private Color bgThreadColor = new Color(50,50,50);
 	public void setBgThreadColor(Color bgThreadColor)
 	{
 		this.bgThreadColor = bgThreadColor;
 	}
+	
 	private Color cursorThreadColor = Color.green;
 	public void setCursorThreadColor( Color cursorThreadColor)
 	{
 		this.cursorThreadColor = cursorThreadColor;
 	}
 	
-	public int getStitches()
+	public int getStitcheCount()
 	{
 		return this.stitchPointList.size();
 	}
-	public int getSteps()
+	
+	public int getStepCount()
 	{
 		return this.stepList == null?0:stepList.length;
 	}
+	
 	public double getDesignHeight()
 	{
 		return stitchPointList.size() == 0 ? 0 : Math.abs((double)(ptBottomRight.y -ptTopLeft.y))/10.0d;
@@ -199,6 +212,7 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 		return stitchPointList.size() == 0 ? 0 : Math.abs((double)ptBottomRight.y)/10.0d;
 	}
 	
+	
 	private int indexStep;
 	private StitchPoint currPoint;
 	private Point ptTopLeft;
@@ -206,13 +220,13 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 	private RandomAccessFile inFS;
 	private Boolean redrawFlag = false;
 	private Boolean regetStitchesFlag = false;
-	private Image image;
 	private BufferedImage designBufferedImage;
-	
-	private Boolean m_trim = true;
-	public void setM_trim(Boolean m_trim) {
-		this.m_trim = m_trim;
+
+	private Boolean trim = true;
+	public void setTrim(Boolean trim) {
+		this.trim = trim;
 	}
+	
 	private float zoomFactor;
 		public float getZoomFactor() {
 		return zoomFactor;
@@ -236,24 +250,34 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 		this.runningStepList = new ArrayList<String>();
 		this.threadList = new EmbroideryThread[maxThreads+2];
 		this.ptTopLeft = new Point(0,0);
+		this.ptBottomRight=new Point(0,0);
 		this.zoomFactor = 1.0f;
 		this.rotateAngle = 0.0f;
 	}
-	private void getDSTToken() throws IOException
+	
+	private void getDSTToken() 
 	{
+		this.currPoint=new StitchPoint(); 
 		byte x = 0;
 		byte y = 0;
 		byte z = 0;
-		int t = 0;
+
 		short xChange = 0;
 		short yChange = 0;
 		while ( x == 0 && y == 0 && z == 0)
 		{
-			t = this.inFS.readByte(); if (t >= 0)x = (byte)t; else break;
-			t = this.inFS.readByte(); if (t >= 0)y = (byte)t; else break;
-			t = this.inFS.readByte(); if (t >= 0)z = (byte)t; else break;
+			
+			try {
+				x = this.inFS.readByte();
+				y = this.inFS.readByte();
+				z = this.inFS.readByte();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				z = (byte) 0XF3;
+			} 
 		}
-		if (t < 0 || z == 0XF3)
+		if (z == (byte)0XF3)
 		{
 			this.currPoint.funcCode = FunctionCode.END;
 			this.runningStepList.add("0");
@@ -297,36 +321,27 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 		this.stepList = null;
 		this.indexStep = 0;
 		this.stitchPointList.clear();
-		this.currPoint.xCoord = 0;
-		this.currPoint.yCoord = 0;
-		this.currPoint.xChange = 0;
-		this.currPoint.yChange = 0;
-		this.currPoint.xCurrent = 0;
-		this.currPoint.yCurrent = 0;
+		this.currPoint=null;
 		this.ptTopLeft.x = 0;
 		this.ptTopLeft.y = 0;
 		this.ptBottomRight.x = 0;
 		this.ptBottomRight.y = 0;
-		if (designBufferedImage != null)
-		{
-			designBufferedImage = null;
-		}
-		this.image = null;
+		
+		this.designBufferedImage = null;
 	}
 	
-	public void getStitchPoints() throws IOException
-	{
+	public void getStitchPoints(){
+		if (this.dstFile.trim() == "") {return;}
 		clearDesign();
 		this.regetStitchesFlag = false;
 		this.redrawFlag = true;
-		if (this.dstFile.trim() == "") {return;}
 		StitchPoint[] st;
 		int stitchesCount = 0;
 		try
 		{
 			this.inFS = new RandomAccessFile(dstFile,"r");
-			this.inFS.seek(512);
 			st = new StitchPoint[(int)((this.inFS.length()-512-1)/3)+1];
+			this.inFS.seek(512);
 			for (getDSTToken(); currPoint.funcCode != FunctionCode.END; getDSTToken())
 			{
 				if (this.currPoint.xCoord < this.ptTopLeft.x) {this.ptTopLeft.x = this.currPoint.xCoord;}
@@ -337,6 +352,10 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 			}
 			int pindex = 0;
 			this.stepList = new RunningStep[this.runningStepList.size()];
+			for(int i=0;i<stepList.length;i++){
+				stepList[i]=new RunningStep();
+			}
+				
 			this.stepList[pindex].firstStitchIndex = 0;
 			for (int i = 0; i < stitchesCount; i++)
 			{
@@ -355,13 +374,20 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 			this.stepList[pindex].lastStitchIndex = stitchesCount - 1;
 			this.stepList[pindex].stitches = this.stepList[pindex].lastStitchIndex - this.stepList[pindex].firstStitchIndex;
 		}
-		catch(Exception e)
+		catch(IOException e)
 		{
-			
+			System.out.println("Error file reading.");
+			e.printStackTrace();
 		}
 		finally
 		{
-			if (this.inFS != null) {this.inFS.close();}
+			if (this.inFS != null)
+				try {
+					this.inFS.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 		}
 	}
 	
@@ -381,7 +407,7 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 		graphics.setBackground(new Color(255,255,255,255));
 		graphics.clearRect(0, 0, length, width);
 		prevStitch = (StitchPoint)this.stitchPointList.get(0);
-		ArrayList<String> runningStepList = this.highLightStepList.size() > 0 ? this.highLightStepList: this.runningStepList;
+		ArrayList<String> runningStepList = this.highlightStepList.size() > 0 ? this.highlightStepList: this.runningStepList;
 		for (int i =1 ; i < this.stitchPointList.size(); i++)
 		{
 			currStitch = (StitchPoint)this.stitchPointList.get(i);
@@ -393,7 +419,7 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 				if (currStitch.funcCode == FunctionCode.JUMP||prevStitch.funcCode == FunctionCode.JUMP 
 						|| prevStitch.funcCode == FunctionCode.STOP)
 				{
-					if (!m_trim)
+					if (!trim)
 					{
 						float[] dash1 = {2f,0f,2f};
 						BasicStroke bs1 = new BasicStroke(1,BasicStroke.CAP_BUTT,BasicStroke.JOIN_ROUND,1.0f,dash1,2f);
@@ -422,22 +448,20 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 		if (this.redrawFlag|redraw) {drawDesign();}
 		rotateImage(this.designBufferedImage, this.rotateAngle); 
 	}
-	private void rotateImage(Image img, float angle)
+	private void rotateImage(BufferedImage img, float angle)
 	{
-		Image oldImage = null;
-		if (this.image != null) {oldImage = this.image;}
-		if (angle < 5) {this. image = img != null? img:null;}
+		if (angle < 5) {this.designBufferedImage = img != null? img:null;}
 		else 
 		{
 			if(img != null)
 			{
 				AffineTransform tx = new AffineTransform();
-			    tx.rotate(angle, ((BufferedImage)img).getWidth() / 2,((BufferedImage) img).getHeight() / 2);
+			    tx.rotate(angle, (img.getWidth() / 2), (img.getHeight() / 2));
 	
 			    AffineTransformOp op = new AffineTransformOp(tx,AffineTransformOp.TYPE_BILINEAR);
-			    this.image = op.filter((BufferedImage) img, null);
+			    this.designBufferedImage = op.filter((BufferedImage) img, null);
 			}
-			else {this.image = null;}
+			else {this.designBufferedImage = null;}
 		}
 	}
 	private void loadDefaultStepList()
@@ -477,7 +501,7 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 	private void SetRunningStepList() 
 	{
 		this.runningStepList.clear();
-		this.highLightStepList.clear();
+		this.highlightStepList.clear();
 		this.runningSteps = this.runningSteps.trim();
 		this.runningSteps = CharMatcher.is('-').trimFrom(runningSteps);
 		if (this.runningSteps == "") {loadDefaultStepList();}
@@ -507,39 +531,18 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 			while (s.contains("-"))
 			{
 				i = s.indexOf("-");
-				this.highLightStepList.add(s.substring(0,i));
+				this.highlightStepList.add(s.substring(0,i));
 				s = s.substring(i+1);
 				j++;
 			}
 			for (i = j; i < this.indexStep; i++)
 			{
-				this.highLightStepList.add(Integer.toString(0));
+				this.highlightStepList.add(Integer.toString(0));
 			}
 		}
 	}
 	
-	public void setThreads(String sColorWay)
-	{
-		String[] sColorCodes = sColorWay.split(",");
-		String sThread = "";
-		Boolean hasErrorInColorWay = false;
-		for( String sCode : sColorCodes)
-		{
-			if (sCode != "")
-			{
-				EmbroideryThread thread = EMBThreadChart.getEmbroideryThread(sCode);
-				sThread += thread.code + ":" + thread.name + ":" + thread.color.toString()+",";
-			}
-			else
-			{
-				hasErrorInColorWay = true;
-				break;
-			}
-		}
-		if (hasErrorInColorWay){sThread = "";}
-		if (sThread != "") {sThread.substring(0, sThread.length() - 1);}
-		this.threads = sThread;
-	}
+
 	
 
 	public static List<EmbroideryThread> getEMBThreadListFromColorway(String sColorway)
@@ -557,6 +560,7 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 		}
 		return threadList;
 	}
+	
 	private void setEmbThreadList() 
 	{
 		this.threads = threads.trim();
@@ -586,7 +590,7 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 					ss = ss.substring(m+1);
 				}
 				int l = Integer.parseInt(ss);
-				t.color = new Color(1>>16&255,1>>8&255,1&255);
+				t.color = new Color(l>>16&255,l>>8&255,l&255);
 				this.threadList[j++]=t;
 				s=s.substring(i+1);
 			}
@@ -607,7 +611,7 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 	public BufferedImage GetDesignThumbnail(int thumbnailSize)
 	{
 		BufferedImage thumbnail = null;
-		if (this.image != null)
+		if (this.designBufferedImage != null)
 		{
 			double designHeight = this.getDesignHeight();
 			double desighWidth = this.getDeignWidth();
@@ -615,7 +619,7 @@ public enum FunctionCode { STOP, STITCH, JUMP, BORERIN, END, CHANGECOLOR};
 			double length = (double)thumbnailSize;
 			int width = (int)( ratio > 1 ? (length/ratio) : length);
 			int height = (int)(ratio > 1 ? length : (length * ratio));
-			thumbnail = Scalr.resize((BufferedImage)this.image,width,height,Scalr.OP_ANTIALIAS);
+			thumbnail = Scalr.resize(this.designBufferedImage,width,height,Scalr.OP_ANTIALIAS);
 		}
 		return thumbnail;
 	}
