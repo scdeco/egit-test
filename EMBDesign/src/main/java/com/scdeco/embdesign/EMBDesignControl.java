@@ -1,9 +1,7 @@
 package com.scdeco.embdesign;
 
-import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.Image;
 import java.awt.Point;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
@@ -25,7 +23,7 @@ public class EMBDesignControl
 	
 	final class StitchPoint 
 	{
-		public int indexStep;
+		public int stepIndex;
 		public FunctionCode funcCode;
 		public int xCoord;
 		public int yCoord;
@@ -33,6 +31,33 @@ public class EMBDesignControl
 		public int yCurrent;
 		public int xChange;
 		public int yChange;	
+		
+		public StitchPoint(){
+		}
+		
+		public StitchPoint(int stepIndex,FunctionCode funcCode,int xCoord,int yCoord,int xCurrent,int yCurrent,int xChange,int yChange){
+			this.stepIndex=stepIndex;
+			this.funcCode=funcCode;
+			this.xCoord=xCoord;
+			this.yCoord=yCoord;
+			this.xCurrent=xCurrent;
+			this.yCurrent=yCurrent;
+			this.xChange=xChange;
+			this.yChange=yChange;
+		}
+		
+		//copy constructor
+		public StitchPoint(StitchPoint anotherStitch){
+			this.stepIndex=anotherStitch.stepIndex;
+			this.funcCode=anotherStitch.funcCode;
+			this.xCoord=anotherStitch.xCoord;
+			this.yCoord=anotherStitch.yCoord;
+			this.xCurrent=anotherStitch.xCurrent;
+			this.yCurrent=anotherStitch.yCurrent;
+			this.xChange=anotherStitch.xChange;
+			this.yChange=anotherStitch.yChange;			
+		}
+		
 	}
 	
 	final class RunningStep
@@ -45,11 +70,11 @@ public class EMBDesignControl
 	
 	}
 	
-	public static final int maxThreads = 15;
+	public static final int Max_Thread_Number = 15;
 	
 	public EMBDesignControl()
 	{
-		this.threadList = new EmbroideryThread[maxThreads+2];
+		this.threadList = new EmbroideryThread[Max_Thread_Number+2];
 		this.stepList=new ArrayList<RunningStep>();
 		
 		this.ptTopLeft = new Point(0,0);
@@ -66,46 +91,47 @@ public class EMBDesignControl
 	
 	public void setThreads(String threads){
 		this.threads = CharMatcher.is(',').trimFrom(threads.trim()).toUpperCase();
-		redrawFlag=true;
 		setThreadList();
+		redrawFlag=true;
+	}
+	
+	private int threadCount;
+	public int getThreadCount(){
+		return this.threadCount;
 	}
 	
 	private EmbroideryThread[] threadList;
-	private void setThreadList() 
-	{
+	private void setThreadList(){
 		if (this.threads.isEmpty())
 			loadDefaultThreadList();
 		
 		else{
-			
 			threadList[0]= new EmbroideryThread("",this.bgThreadColor);
 			threadList[16]=new EmbroideryThread("",this.cursorThreadColor);
 					
 			String[] threads = this.threads.split(",");
-			int colorIndex=1;
+			int threadIndex=0;
 			for( String code : threads)
 				if (code != "")
-					threadList[colorIndex++]= EMBThreadChart.getEmbroideryThread(code);
+					threadList[++threadIndex]= EMBThreadChart.getEmbroideryThread(code);
 				else
 					break;
+			threadCount=threadIndex;
 		}
 	}
 	
-	
-
 	private String runningSteps = "";
 	public String getRunningSteps(){
 		return this.runningSteps;
 	}
-	
 	public void setRunningSteps(String runningSteps)
 	{
 		this.runningSteps = CharMatcher.is('-').trimFrom(runningSteps.trim());
-		redrawFlag = true;
 		SetRunningStepList();
+		redrawFlag = true;
 	}
 
-	//generate in createStitchPointList()
+	//generate in createStitchList()
 	private ArrayList<RunningStep> stepList;
 	public ArrayList<RunningStep> getStepList()
 	{
@@ -157,42 +183,21 @@ public class EMBDesignControl
 	}
 
 	
-	
-	public int getColorCount()
-	{
-		int colors=0;
-		int i = 1;
-		if (this.threadList != null)
-		{
-			while (i < this.threadList.length)
-			{
-				if ((this.threadList[i].code == null) || this.threadList[i].code.isEmpty() 
-						|| this.threadList[i].code.trim().isEmpty()) {break;}
-				i++;
-			}
-			colors = --i;
-		}		
-		return colors;
+	private StitchPoint[] stitchList;
+	public StitchPoint[] getStitchList(){
+		return this.stitchList;
 	}
-
-	
-	private StitchPoint[] stitchPointList;
-	public StitchPoint[] getStitchPointList()
-	{
-		return this.stitchPointList;
-	}
-	
 	
 	private String dstFile = "";
-	public String getDstFile()
-	{
+	public String getDstFile(){
 		return this.dstFile;
-		
 	}
-	public void setDstFile(String dstFile)
-	{	if(this.dstFile != dstFile) clearDesign();
-		this.dstFile = dstFile;
-		regetStitchesFlag = true;
+	public void setDstFile(String dstFile){
+		if(this.dstFile != dstFile){
+			clearDesign();
+			this.dstFile = dstFile;
+			createStitchList();
+		}
 	}
 	
 	private Color bgThreadColor = new Color(50,50,50);
@@ -208,7 +213,7 @@ public class EMBDesignControl
 	}
 	
 	public int getStitchCount(){
-		return this.stitchPointList==null?0:this.stitchPointList.length;
+		return this.stitchList==null?0:this.stitchList.length;
 	}
 	
 	public int getStepCount()
@@ -225,12 +230,12 @@ public class EMBDesignControl
 	}
 	
 	public double getStartX(){
-		return getStitchCount() == 0 ? 0 : ((double)(stitchPointList[0].xCurrent) 
+		return getStitchCount() == 0 ? 0 : ((double)(stitchList[0].xCurrent) 
 				- Math.abs((double)(ptBottomRight.x - ptTopLeft.x))/2.0d)/10.0d;
 	}
 	
 	public double getStartY(){
-		return getStitchCount() == 0 ? 0 : ((double)(stitchPointList[0].yCurrent) 
+		return getStitchCount() == 0 ? 0 : ((double)(stitchList[0].yCurrent) 
 				- Math.abs((double)(ptBottomRight.y - ptTopLeft.y))/2.0d)/10.0d;
 	}
 	
@@ -251,20 +256,13 @@ public class EMBDesignControl
 	}
 	
 	
-	private int indexStep;
 	private StitchPoint currPoint;
 	private Point ptTopLeft;
 	private Point ptBottomRight;
 	private RandomAccessFile inFS;
 	private Boolean redrawFlag = false;
-	private Boolean regetStitchesFlag = false;
 	private BufferedImage designBufferedImage;
 
-	private Boolean trim = true;
-	public void setTrim(Boolean trim) {
-		this.trim = trim;
-	}
-	
 	private float zoomFactor;
 		public float getZoomFactor() {
 		return zoomFactor;
@@ -285,16 +283,9 @@ public class EMBDesignControl
 	
 	private void getDSTToken() 
 	{
-		this.currPoint=new StitchPoint(); 
-		byte x = 0;
-		byte y = 0;
-		byte z = 0;
-
-		short xChange = 0;
-		short yChange = 0;
+		byte x = 0,y = 0,z = 0;
 		while ( x == 0 && y == 0 && z == 0)
 		{
-			
 			try {
 				x = this.inFS.readByte();
 				y = this.inFS.readByte();
@@ -305,48 +296,50 @@ public class EMBDesignControl
 				z = (byte) 0XF3;
 			} 
 		}
-		if (z == (byte)0XF3)
-		{
+		
+		if (z == (byte)0XF3){
+			
 			this.currPoint.funcCode = FunctionCode.END;
 			this.stepList.add(new RunningStep());
 			return;
 		}
-		xChange = (short)(-9*((x>>3)&1)+9*((x>>2)&1)-((x>>1)&1)+(x&1)
-				-27*((y>>3)&1)+(27*(y>>2)&1)-3*(((y>>1)&1)+3*(y&1)-81*((z>>3)&1)+81*((z>>2)&1)));
-		yChange = (short)(-9*((x>>4)&1)+9*((x>>5)&1)-((x>>6)&1)+((x>>7)&1)
-				-27*((y>>4)&1)+(27*(y>>5)&1)-3*(((y>>6)&1)+3*((y>>7)&1)-81*((z>>4)&1)+81*((z>>5)&1)));
+		
+		int xChange = -9*((x>>3)&1)+9*((x>>2)&1)-((x>>1)&1)+(x&1)
+				-27*((y>>3)&1)+27*((y>>2)&1)-3*((y>>1)&1)+3*(y&1)-81*((z>>3)&1)+81*((z>>2)&1);
+		int yChange = -9*((x>>4)&1)+9*((x>>5)&1)-((x>>6)&1)+((x>>7)&1)
+				-27*((y>>4)&1)+27*((y>>5)&1)-3*((y>>6)&1)+3*((y>>7)&1)-81*((z>>4)&1)+81*((z>>5)&1);
+		
 		this.currPoint.xChange = xChange;
 		this.currPoint.yChange = yChange;
 		this.currPoint.xCoord += xChange;
 		this.currPoint.yCoord += yChange;
-		switch(z&0XC3)
-		{
-		case 0X03:
-			this.currPoint.indexStep = indexStep;
-			this.currPoint.funcCode = FunctionCode.STITCH;
-			break;
-		case 0X83:
-			this.currPoint.indexStep = indexStep;
-			this.currPoint.funcCode = FunctionCode.JUMP;
-			break;
-		case 0XC3:
-			this.currPoint.funcCode = FunctionCode.STOP;
-			this.stepList.add(new RunningStep());
-			break;
-		case 0X43:
-			this.currPoint.indexStep = indexStep;
-			this.currPoint.funcCode = FunctionCode.BORERIN;
-			break;
-		default:
-			break;
+		
+		this.currPoint.stepIndex = stepList.size();
+		
+		switch(z&0XC3){
+			case 0X03:
+				this.currPoint.funcCode = FunctionCode.STITCH;
+				break;
+			case 0X83:
+				this.currPoint.funcCode = FunctionCode.JUMP;
+				break;
+			case 0XC3:
+				this.currPoint.funcCode = FunctionCode.STOP;
+				this.stepList.add(new RunningStep());
+				break;
+			case 0X43:
+				this.currPoint.funcCode = FunctionCode.BORERIN;
+				break;
+			default:
+				break;
 		}
 	}
+	
 	public void clearDesign()
 	{
-		this.stitchPointList=null;
+		this.stitchList=null;
 		this.stepList.clear();
 
-		this.currPoint=null;
 		this.ptTopLeft.x = 0;
 		this.ptTopLeft.y = 0;
 		this.ptBottomRight.x = 0;
@@ -355,40 +348,40 @@ public class EMBDesignControl
 		this.designBufferedImage = null;
 	}
 	
-	public void createStitchPointList(){
+	public void createStitchList(){
 		if (this.dstFile.trim() == "") {return;}
 		clearDesign();
-		this.regetStitchesFlag = false;
 		this.redrawFlag = true;
 		int stitchesCount = 0;
 		try
 		{
 			this.inFS = new RandomAccessFile(dstFile,"r");
-			stitchPointList = new StitchPoint[(int)((this.inFS.length()-512-1)/3)+1];
-			this.inFS.seek(512);
-			for (getDSTToken(); currPoint.funcCode != FunctionCode.END; getDSTToken())
-			{
-				if (this.currPoint.xCoord < this.ptTopLeft.x) {this.ptTopLeft.x = this.currPoint.xCoord;}
-				if (this.currPoint.yCoord > this.ptTopLeft.y) {this.ptTopLeft.y = this.currPoint.yCoord;}
-				if (this.currPoint.xCoord > this.ptBottomRight.x) {this.ptBottomRight.x = this.currPoint.xCoord;}
-				if (this.currPoint.yCoord < this.ptBottomRight.y) {this.ptTopLeft.y = this.currPoint.yCoord;}
-				stitchPointList[stitchesCount++] = currPoint;
+			stitchList = new StitchPoint[(int)((this.inFS.length()-512-1)/3)+1];
+			this.currPoint=new StitchPoint(); 
+			this.inFS.seek(512);			
+			for (getDSTToken(); currPoint.funcCode != FunctionCode.END; getDSTToken()){
+				
+				if (this.currPoint.xCoord < this.ptTopLeft.x) this.ptTopLeft.x = this.currPoint.xCoord;
+				if (this.currPoint.yCoord > this.ptTopLeft.y) this.ptTopLeft.y = this.currPoint.yCoord;
+				if (this.currPoint.xCoord > this.ptBottomRight.x) this.ptBottomRight.x = this.currPoint.xCoord;
+				if (this.currPoint.yCoord < this.ptBottomRight.y) this.ptBottomRight.y = this.currPoint.yCoord;
+				stitchList[stitchesCount++] = new StitchPoint(currPoint);
 			}
 			
 			int pindex = 0;
 			stepList.get(pindex).firstStitchIndex = 0;
 			for (int i = 0; i < stitchesCount; i++)
 			{
-				StitchPoint st=stitchPointList[i];
+				StitchPoint st=stitchList[i];
 				st.xCurrent = st.xCoord - this.ptTopLeft.x;
 				st.yCurrent = this.ptTopLeft.y - st.yCoord;
-				if(st.indexStep != pindex)
+				if(st.stepIndex != pindex)
 				{
 					RunningStep rs=stepList.get(pindex);
 					rs.lastStitchIndex = i -1;
 					rs.stitches = rs.lastStitchIndex -rs.firstStitchIndex+1;
 					
-					pindex = st.indexStep;
+					pindex = st.stepIndex;
 					stepList.get(pindex).firstStitchIndex = i;
 				}
 			}
@@ -417,10 +410,10 @@ public class EMBDesignControl
 		g2d.setColor(threadColor);
 		
 		StitchPoint currStitch;
-		StitchPoint prevStitch=stitchPointList[0];
+		StitchPoint prevStitch=stitchList[0];
 
 		for(int i=step.firstStitchIndex+1;i<=step.lastStitchIndex;i++){
-			currStitch=stitchPointList[i];
+			currStitch=stitchList[i];
 			g2d.drawLine(prevStitch.xCurrent,prevStitch.yCurrent,currStitch.xCurrent,currStitch.yCurrent);
 			prevStitch=currStitch;
 		}
@@ -429,16 +422,16 @@ public class EMBDesignControl
 	
 	public void drawDesign()
 	{
-		if (this.stitchPointList.length == 0) {return;}
+		if (this.stitchList.length == 0) return;
 		redrawFlag = false;
 
-		int length = this.ptBottomRight.x - this.ptTopLeft.x +1;
-		int width = this.ptTopLeft.y-this.ptBottomRight.y+1;
-		designBufferedImage = new BufferedImage(length,width,BufferedImage.TYPE_INT_ARGB);
+		int width = this.ptBottomRight.x - this.ptTopLeft.x +1;
+		int height = this.ptTopLeft.y-this.ptBottomRight.y+1;
+		designBufferedImage = new BufferedImage(width,height,BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g2d = designBufferedImage.createGraphics();
 
 		g2d.setBackground(new Color(255,255,255,255));
-		g2d.clearRect(0, 0, length, width);
+		g2d.clearRect(0, 0, width, height);
 		
 		for(RunningStep step:stepList)
 			drawStep(step,g2d);
@@ -475,14 +468,19 @@ public class EMBDesignControl
 		
 	}
 */
-	public void getDesignImage( Boolean redraw, Boolean regetStitches, float angle) throws IOException
+	public BufferedImage getDesignImage(){
+		if (this.redrawFlag)
+			drawDesign();
+		return this.designBufferedImage;
+	}
+	
+	public void getDesignImage( Boolean redraw, float angle) throws IOException
 	{
 		this.rotateAngle = angle;
-		getDesignImage(redraw, regetStitches);
+		getDesignImage(redraw);
 	}
-	public void getDesignImage(Boolean redraw, Boolean regetSitches) throws IOException
+	public void getDesignImage(Boolean redraw) throws IOException
 	{
-		if (this.regetStitchesFlag) {createStitchPointList();}
 		if (this.redrawFlag|redraw) {drawDesign();}
 		rotateImage(this.designBufferedImage, this.rotateAngle); 
 	}

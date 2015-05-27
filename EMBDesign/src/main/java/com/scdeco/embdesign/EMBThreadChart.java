@@ -15,6 +15,7 @@ public class EMBThreadChart
 		threads.put("S1005", Color.black);
 		threads.put("S1011", Color.gray);
 		threads.put("S1043",Color.blue);
+		threads.put("S1024",Color.yellow);
 	}
 	
 	EMBThreadChart()
