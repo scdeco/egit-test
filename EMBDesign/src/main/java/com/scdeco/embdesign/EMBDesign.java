@@ -229,6 +229,7 @@ public class EMBDesign
 		}
 	}
 	
+	//if provided colorway is null, gerenrate a rawIndexColorModel 
 	private IndexColorModel createIndexColorModel(Colorway colorway){
 
 		int size=getStepCount()+1;
@@ -237,37 +238,27 @@ public class EMBDesign
 		byte[] g=new byte[size];
 		byte[] b=new byte[size];
 		
-		r[0]=(byte)255;
-		g[0]=(byte)255;
-		b[0]=(byte)255;
+		if(colowway!=null){
+			Color color=colorway.getThreadColor(0);
+			int i=0;
+			do{
+				r[i]=(byte)color.getRed();
+				g[i]=(byte)color.getGreen();
+				b[i]=(byte)color.getBlue();
+				if(++i<size)
+					color=colorway.getStepColor(i-1);
+				else
+					break;
+			} while (true);
+		else{
+			for (byte i=0;i<size;i++){
+				r[i]=i;g[i]=i;b[i]=i;
+			}
+		}
+		
+		return new IndexColorModel(8,size,r,g,b);
+	}
 
-		for (byte i=1;i<size;i++){
-			
-			Color color=colorway.getStepColor(i-1);
-			
-			r[i]=(byte)color.getRed();
-			g[i]=(byte)color.getGreen();
-			b[i]=(byte)color.getBlue();
-		}
-		
-		return new IndexColorModel(7,size,r,g,b);
-	}
-	
-	private IndexColorModel createRawIndexColorModel(){
-		int size=getStepCount()+1;
-		
-		byte[] r=new byte[size];
-		byte[] g=new byte[size];
-		byte[] b=new byte[size];
-		
-		for (byte i=0;i<size;i++){
-			r[i]=i;g[i]=i;b[i]=i;
-		}
-			
-		return new IndexColorModel(7,size,r,g,b);
-		
-	}
-	
 	public void drawStep(Step step,Graphics2D g2d){
 		
 		int stepIndex=step.stepIndex+1;
@@ -305,7 +296,7 @@ public class EMBDesign
 		int width = getDesignWidthInPixel();
 		int height = getDesignHeightInPixel();
 		
-		rawDesignBufferedImage = new BufferedImage(width,height,BufferedImage.TYPE_BYTE_INDEXED,createRawIndexColorModel());
+		rawDesignBufferedImage = new BufferedImage(width,height,BufferedImage.TYPE_BYTE_INDEXED,createIndexColorModel());
 		Graphics2D g2d = rawDesignBufferedImage.createGraphics();
 
 		g2d.setBackground(new Color(0,0,0));
