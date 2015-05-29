@@ -12,14 +12,26 @@ public class Colorway {
 	public static final int Max_Thread_Number = 15;
 	public static Color backgroundColor=Color.WHITE;
 	
-	public Colorway(){
-		
-	}
-	
 	public Colorway(String threads,String runningSteps){
 		setThreads(threads);
 		setRunningSteps(runningSteps);
 	}
+	
+	public Colorway(int stepCount){
+		if (stepCount>0){
+			setThreads(""); 
+			setRunningSteps(getDefaultRunningSteps(stepCount));
+		}
+
+	}
+	private String getDefaultRunningSteps(int stepCount){
+		String runningSteps = "";
+		for(int step=0;step<stepCount;step++)
+			runningSteps+= "-"+(step%Max_Thread_Number+1);
+		runningSteps=runningSteps.substring(1);
+		return runningSteps;
+	}
+	
 	String runningSteps;
 	int[] runningStepList;
 	
@@ -36,7 +48,6 @@ public class Colorway {
 	}
 
 	private void setRunningStepList() {
-		
 		if (!runningSteps.isEmpty()){
 			String[] stepList = this.runningSteps.split(runningStepSeperator);
 			runningStepList=new int[stepList.length];
@@ -62,10 +73,8 @@ public class Colorway {
 	}
 	
 	private void setThreadList(){
-		if (threads.isEmpty())
-			threadList=defaultThreadList;
-		else
-			threadList=EMBThreadChart.getEmbroideryThreadList(threads);
+		
+		threadList=threads.isEmpty()?defaultThreadList:EMBThreadChart.getEmbroideryThreadList(threads);
 	}
 	
 	public int getThreadCount(){
@@ -74,11 +83,6 @@ public class Colorway {
 	
 	public Color getStepColor(int stepIndex){
 		return threadList.get(runningStepList[stepIndex]).color;
-	}
-	
-	private void loadDefaultStepList(){
-		//for(String step:stepList)
-		//	step.threadIndex= stepList.indexOf(step) %(this.threadList.length - 1) +1;
 	}
 	
 	public static final List<EmbroideryThread> defaultThreadList=new ArrayList<EmbroideryThread>(){

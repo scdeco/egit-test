@@ -15,7 +15,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.scdeco.embdesign.Colorway;
-import com.scdeco.embdesign.EMBDesignControl;
+import com.scdeco.embdesign.EMBDesign;
 
 public class TestDesign {
 
@@ -36,9 +36,24 @@ public class TestDesign {
 	}
 
 	@Test
+	public void testDefaultColorway(){
+		Colorway colorway = new Colorway(5);
+		System.out.println(colorway.getRunningSteps());
+		
+		colorway = new Colorway(15);
+		System.out.println(colorway.getRunningSteps());
+
+		colorway = new Colorway(16);
+		System.out.println(colorway.getRunningSteps());
+		
+		colorway = new Colorway(60);
+		System.out.println(colorway.getRunningSteps());
+
+	}
+	
+	@Test
 	public void test() {
-		EMBDesignControl designControl=new EMBDesignControl();
-		designControl.setDstFile("/home/baku/DST/W434046B.DST");
+		EMBDesign designControl=new EMBDesign("/home/baku/DST/W434046B.DST");
 //		designControl.setThreads("S1024,S0561,S1043");
 //		designControl.setRunningSteps("1-2-3-1");
 		
