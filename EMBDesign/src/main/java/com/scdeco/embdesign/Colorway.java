@@ -33,6 +33,7 @@ public class Colorway {
 	}
 	
 	String runningSteps;
+	//value of runningStepList is colorIndex of threadList
 	int[] runningStepList;
 	
 	String threads;
@@ -81,10 +82,15 @@ public class Colorway {
 		return threadList==null?0:threadList.size();
 	}
 	
+	//get thread color of the designated step
 	public Color getStepColor(int stepIndex){
-		return threadList.get(runningStepList[stepIndex]).color;
+		return getThreadColor(runningStepList[stepIndex]);
 	}
 	
+	//get thread color from threadList
+	public Color getThreadColor(int colorIndex){
+		return threadList.get(colorIndex).color
+	}
 	public static final List<EmbroideryThread> defaultThreadList=new ArrayList<EmbroideryThread>(){
 		{
 			new EmbroideryThread("", backgroundColor);
