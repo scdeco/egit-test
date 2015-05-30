@@ -83,7 +83,7 @@ public class EMBDesign
 		return this.stepList;
 	}
 
-	private boolean trim=true;
+	private boolean showTrim=false;
 	
 	private Stitch[] stitchList;
 	public Stitch[] getStitchList(){
@@ -229,7 +229,7 @@ public class EMBDesign
 		}
 	}
 	
-	//if provided colorway is null, gerenrate a rawIndexColorModel 
+	//if provided colorway is null, generate a rawIndexColorModel 
 	private IndexColorModel createIndexColorModel(Colorway colorway){
 
 		int size=getStepCount()+1;
@@ -238,7 +238,7 @@ public class EMBDesign
 		byte[] g=new byte[size];
 		byte[] b=new byte[size];
 		
-		if(colowway!=null){
+		if(colorway!=null){
 			Color color=colorway.getThreadColor(0);
 			int i=0;
 			do{
@@ -250,6 +250,7 @@ public class EMBDesign
 				else
 					break;
 			} while (true);
+		}
 		else{
 			for (byte i=0;i<size;i++){
 				r[i]=i;g[i]=i;b[i]=i;
@@ -273,7 +274,7 @@ public class EMBDesign
 
 			if (currStitch.funcCode == FunctionCode.JUMP||prevStitch.funcCode == FunctionCode.JUMP 
 					|| prevStitch.funcCode == FunctionCode.STOP){
-				if (!trim){
+				if (showTrim){
 					float[] dash1 = {2f,0f,2f};
 					BasicStroke bs1 = new BasicStroke(1,BasicStroke.CAP_BUTT,BasicStroke.JOIN_ROUND,1.0f,dash1,2f);
 					g2d.setStroke(bs1);
@@ -296,7 +297,7 @@ public class EMBDesign
 		int width = getDesignWidthInPixel();
 		int height = getDesignHeightInPixel();
 		
-		rawDesignBufferedImage = new BufferedImage(width,height,BufferedImage.TYPE_BYTE_INDEXED,createIndexColorModel());
+		rawDesignBufferedImage = new BufferedImage(width,height,BufferedImage.TYPE_BYTE_INDEXED,createIndexColorModel(null));
 		Graphics2D g2d = rawDesignBufferedImage.createGraphics();
 
 		g2d.setBackground(new Color(0,0,0));

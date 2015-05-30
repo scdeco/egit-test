@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -16,6 +17,7 @@ import org.junit.Test;
 
 import com.scdeco.embdesign.Colorway;
 import com.scdeco.embdesign.EMBDesign;
+import com.scdeco.embdesign.EMBDesignUtils;
 
 public class TestDesign {
 
@@ -64,18 +66,15 @@ public class TestDesign {
 		assertTrue(count==4);
 		
 		
-		BufferedImage image1=designControl.getDesignImage(new Colorway("S1024,S0561,S1043,S1005","1-2-3-4"));
-		BufferedImage image2=designControl.getDesignImage(new Colorway("S1024,S0561,S1043,S1005","2-3-4-1"));
-		BufferedImage image3=designControl.getDesignImage(new Colorway("S1024,S0561,S1043,S1005","3-4-1-2"));
+		BufferedImage image1=designControl.getEMBDesignImage(new Colorway("S1024,S0561,S1043,S1005","1-2-3-4"));
+		BufferedImage image2=EMBDesignUtils.getDesignThumbnail(image1, 120);
+		ImageIcon image3=EMBDesignUtils.getDesignIcon(image1);
 		try{
 			File outputfile1 = new File("/home/baku/DST/W434046B-1.png");
 		    ImageIO.write(image1, "png", outputfile1);
-
-		    File outputfile2 = new File("/home/baku/DST/W434046B-2.png");
-		    ImageIO.write(image2, "png", outputfile2);
+		    outputfile1 = new File("/home/baku/DST/W434046B-1-resized.png");
+		    ImageIO.write(image2, "png", outputfile1);
 		    
-			File outputfile3 = new File("/home/baku/DST/W434046B-3.png");
-		    ImageIO.write(image3, "png", outputfile3);
 		}
 		catch (IOException e) {
 			

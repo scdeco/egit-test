@@ -39,7 +39,7 @@ public class EMBThreadChart
 		List<EmbroideryThread> threadList = new ArrayList<EmbroideryThread>();
 		String[] threadCodeList = threadCodes.split(Colorway.runningStepSeperator);
 		if(threadCodeList.length>0){
-			threadList.add(new EmbroideryThread("",Color.white)); //backgroundcolor
+			threadList.add(new EmbroideryThread("",Color.white)); //background color
 			for(String code:threadCodeList){
 				code=code.trim();
 				if (!code.isEmpty()){

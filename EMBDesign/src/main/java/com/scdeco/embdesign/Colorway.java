@@ -89,9 +89,14 @@ public class Colorway {
 	
 	//get thread color from threadList
 	public Color getThreadColor(int colorIndex){
-		return threadList.get(colorIndex).color
+		return threadList.get(colorIndex).color;
 	}
 	public static final List<EmbroideryThread> defaultThreadList=new ArrayList<EmbroideryThread>(){
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -3668026125195896498L;
+
 		{
 			new EmbroideryThread("", backgroundColor);
 			new EmbroideryThread("", new Color(0,255,0));

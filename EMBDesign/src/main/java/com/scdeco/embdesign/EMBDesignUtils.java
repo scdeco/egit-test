@@ -1,31 +1,23 @@
 package com.scdeco.embdesign;
 
 import java.awt.image.BufferedImage;
-import java.awt.image.IndexColorModel;
-import java.awt.image.WritableRaster;
+
+import javax.swing.ImageIcon;
 
 import org.imgscalr.Scalr;
 
 public class EMBDesignUtils{
 	
-	public EMBDesignUtils(BufferedImage bufferedImage){
-		this.designBufferedImage=bufferedImage; 
+	public static BufferedImage resize(BufferedImage srcBufferedImage,int targetWidth, int targetHeight){
+		return (srcBufferedImage == null)?null:
+				Scalr.resize(srcBufferedImage,Scalr.Method.AUTOMATIC,Scalr.Mode.AUTOMATIC,targetWidth,targetHeight );
+	}
+
+	public static BufferedImage getDesignThumbnail(BufferedImage srcBufferedImage,int thumbnailSize){
+		return resize(srcBufferedImage,thumbnailSize,thumbnailSize);
 	}
 	
-	BufferedImage designBufferedImage;
-	public BufferedImage getBufferedImage(){
-		return designBufferedImage;
-	}
-	
-	public BufferedImage GetDesignThumbnail(int thumbnailSize){
-		BufferedImage thumbnail = null;
-		if (this.designBufferedImage != null)
-		{
-			double ratio = designBufferedImage.getHeight()/designBufferedImage.getWidth();
-			int width = (int)( ratio > 1 ? (thumbnailSize/ratio) : thumbnailSize);
-			int height = (int)(ratio > 1 ? thumbnailSize : (int)(thumbnailSize * ratio));
-			thumbnail = Scalr.resize(this.designBufferedImage,width,height,Scalr.OP_ANTIALIAS);
-		}
-		return thumbnail;
+	public static ImageIcon getDesignIcon(BufferedImage srcBufferedImage){
+		return new ImageIcon(srcBufferedImage);
 	}
 }
