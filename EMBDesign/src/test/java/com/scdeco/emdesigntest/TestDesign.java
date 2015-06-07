@@ -39,6 +39,7 @@ public class TestDesign {
 
 	@Test
 	public void testDefaultColorway(){
+		/*
 		Colorway colorway = new Colorway(5);
 		System.out.println(colorway.getRunningSteps());
 		
@@ -50,29 +51,28 @@ public class TestDesign {
 		
 		colorway = new Colorway(60);
 		System.out.println(colorway.getRunningSteps());
-
+*/
 	}
 	
 	@Test
 	public void test() {
-		EMBDesign designControl=new EMBDesign("/home/baku/DST/W434046B.DST");
-//		designControl.setThreads("S1024,S0561,S1043");
-//		designControl.setRunningSteps("1-2-3-1");
+		EMBDesign designControl=new EMBDesign("/home/baku/DST/W432162A.DST");
+
 		
 		int count=designControl.getStitchCount();
 		assertTrue(count>0);
 		
 		count=designControl.getStepCount();
-		assertTrue(count==4);
+		assertTrue(count>0);
 		
 		
-		BufferedImage image1=designControl.getEMBDesignImage(new Colorway("S1024,S0561,S1043,S1005","1-2-3-4"));
+		BufferedImage image1=designControl.getEMBDesignImage();
+		//"S1061,S1005,S1040,S1011,S1147,S1159,S1001,S1043","1-2-3-4-1-5-2-6-3-4-7-2-8-7"
 		BufferedImage image2=EMBDesignUtils.getDesignThumbnail(image1, 120);
-		ImageIcon image3=EMBDesignUtils.getDesignIcon(image1);
 		try{
-			File outputfile1 = new File("/home/baku/DST/W434046B-1.png");
+			File outputfile1 = new File("/home/baku/DST/W432162A-1.png");
 		    ImageIO.write(image1, "png", outputfile1);
-		    outputfile1 = new File("/home/baku/DST/W434046B-1-resized.png");
+		    outputfile1 = new File("/home/baku/DST/W432162A-1-resized.png");
 		    ImageIO.write(image2, "png", outputfile1);
 		    
 		}

@@ -75,7 +75,7 @@ public class Colorway {
 	
 	private void setThreadList(){
 		
-		threadList=threads.isEmpty()?defaultThreadList:EMBThreadChart.getEmbroideryThreadList(threads);
+		threadList=threads.isEmpty()?getDefaultThreadList():EMBThreadChart.getEmbroideryThreadList(threads);
 	}
 	
 	public int getThreadCount(){
@@ -91,64 +91,52 @@ public class Colorway {
 	public Color getThreadColor(int colorIndex){
 		return threadList.get(colorIndex).color;
 	}
-	public static final List<EmbroideryThread> defaultThreadList=new ArrayList<EmbroideryThread>(){
-		/**
-		 * 
-		 */
-		private static final long serialVersionUID = -3668026125195896498L;
-
-		{
-			new EmbroideryThread("", backgroundColor);
-			new EmbroideryThread("", new Color(0,255,0));
-			new EmbroideryThread("", new Color(0,0,255));
-			new EmbroideryThread("", new Color(0,255,0));
-			new EmbroideryThread("", new Color(0,0,255));
-			new EmbroideryThread("", new Color(255,0,0));
-			new EmbroideryThread("", new Color(255,255,0));
-			new EmbroideryThread("", new Color(0,255,255));
-			new EmbroideryThread("", new Color(255,0,255));
-			new EmbroideryThread("", new Color(0,153,0));
-			new EmbroideryThread("", new Color(0,0,153));
-			new EmbroideryThread("", new Color(153,0,0));
-			new EmbroideryThread("", new Color(255,153,51));
-			new EmbroideryThread("", new Color(153,0,204));
-			new EmbroideryThread("", new Color(153,102,51));
-			new EmbroideryThread("", new Color(255,255,255));
-			new EmbroideryThread("", new Color(0,0,0));
-			new EmbroideryThread("", new Color(255,126,204));
-		}
+	
+	public static List<EmbroideryThread> getDefaultThreadList(){
+		List<EmbroideryThread> defaultThreadList=new ArrayList<EmbroideryThread>();
+		defaultThreadList.add(new EmbroideryThread("", backgroundColor));
+		defaultThreadList.add(new EmbroideryThread("", new Color(0,255,0)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(0,0,255)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(0,255,0)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(0,0,255)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(255,0,0)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(255,255,0)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(0,255,255)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(255,0,255)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(0,153,0)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(0,0,153)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(153,0,0)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(255,153,51)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(153,0,204)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(153,102,51)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(255,255,255)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(0,0,0)));
+		defaultThreadList.add(new EmbroideryThread("", new Color(255,126,204)));
+		return defaultThreadList;
 	};
 	
-	public static String normalizThreads(String threads)
-	{
+	public static String normalizThreads(String threads){
 		threads=threads.trim().toUpperCase();
-		if ((threads != null) && !threads.isEmpty() && !threads.trim().isEmpty())
-		{
+		if ((threads != null) && !threads.isEmpty() && !threads.trim().isEmpty()){
 			Integer n = Ints.tryParse(threads);
 			if (("MS6".contains(threads.substring(0, 1)) & threads.length() == 4) &&  n != null)
-			{
 				threads = "S" + threads;
-			}	
 		}
 		return threads;
 	}
 	
-	public static String normalizeRunningStep(String runningStep)
-	{
-		if( runningStep != "")
-		{
+	public static String normalizeRunningStep(String runningStep){
+		if( runningStep != ""){
 			String[] steps = runningStep.split(runningStepSeperator);
 			runningStep = "";
 			boolean isZeros =  true;
-			for(String step : steps)
-			{
+			for(String step : steps){
 				String s = step.trim();
-				if (s != "")
-				{
+				if (s != ""){
 					Integer i = Ints.tryParse(s);
 					runningStep += "-" + i.toString();
-					if ( i>0) {isZeros = false;}
-					
+					if ( i>0) 
+						isZeros = false;
 				}
 			}
 			runningStep = isZeros? "":runningStep.substring(1);
