@@ -2,14 +2,11 @@ package com.scdeco.emdesigntest;
 
 import static org.junit.Assert.assertTrue;
 
-import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
-import javax.swing.ImageIcon;
-
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -88,11 +85,6 @@ public class TestDesign {
 	
 	}
 	
-	private char[] getThreads(String string) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	@Test
 	public void testReadFile(){
 		

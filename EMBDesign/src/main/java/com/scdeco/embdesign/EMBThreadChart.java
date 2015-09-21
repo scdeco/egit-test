@@ -3,12 +3,15 @@ package com.scdeco.embdesign;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -51,17 +54,61 @@ public class EMBThreadChart
 	
 	
 	
-	static Map<String,Color> threads = new HashMap<String,Color>();
+	static Map<String,Color> threads = new LinkedHashMap<String,Color>();
     public static void initThreadsFromXmlFile(String xmlFile){
 		parseXmlFile(xmlFile);
 		parseDocument();
 		
 	}
-	public static String checkKey(String key){
-		if(threads.containsKey(key)) return "true";
-		else return "false";
+	public static void initThreadsFromDataBase(){
+		
+		Connection conn = null;
+		PreparedStatement  pst = null;
+		ResultSet rs = null;
+		
+		String baseURL = "jdbc:mysql://localhost:3306/";
+		String dbName = "world";
+		String driver = "com.mysql.jdbc.Driver";
+		String userName = "root";
+		String password = "zwh940428";
+		
+		try {
+			Class.forName(driver).newInstance();
+			conn = DriverManager.getConnection(baseURL+dbName,userName,password);
+			pst = conn.prepareStatement("Select sCode,nRed,nGreen,nBlue from dictembthread");
+			rs = pst.executeQuery();
+			
+			while(rs.next()){
+				threads.put(rs.getString("sCode"), new Color(rs.getInt("nRed"),rs.getInt("nGreen"),rs.getInt("nBlue")));
+			}
+		}
+		catch(Exception e){
+			System.out.println(e);
+		}
+		finally{
+			if (conn != null) {  
+                try {  
+                    conn.close();  
+                } catch (SQLException e) {  
+                    e.printStackTrace();  
+                }  
+            }  
+            if (pst != null) {  
+                try {  
+                    pst.close();  
+                } catch (SQLException e) {  
+                    e.printStackTrace();  
+                }  
+            }  
+            if (rs != null) {  
+                try {  
+                    rs.close();  
+                } catch (SQLException e) {  
+                    e.printStackTrace();  
+                }  
+            }	
+		}
 	}
-	
 	public static Color getColor(String code){
 		
 		return threads.get(code.toUpperCase());
@@ -70,8 +117,8 @@ public class EMBThreadChart
 	public static EmbroideryThread getEmbroideryThread(String threadCode){
 		
 		EmbroideryThread thread=new EmbroideryThread();
-		thread.code = threadCode;
-		thread.color = getColor(threadCode);
+		thread.setCode(threadCode);
+		thread.setColor(getColor(threadCode));
 		return thread;
 	}
 	
@@ -162,12 +209,69 @@ public class EMBThreadChart
 		return Integer.parseInt(getTextValue(ele));
 	}
 	
-	public static EmbroideryThread getClosestThread(Color color,String algorithm,double[] weight){
-		EmbroideryThread thread = new EmbroideryThread();
-		
+	public static EmbroideryThread[] getClosestThreadList(Color color, int count, String algorithm, double[] weight)
+    {
+        if (count < 1)  count = 1;
+        EmbroideryThread[] listClosestColor = new EmbroideryThread[count];
+        double[] listDist = new double[count];
+        
+        for (int i = 0; i < count; i++)
+            listDist[i] = Double.MAX_VALUE;
+        for(String key: threads.keySet())
+        {
+        	Color c = threads.get(key);
+            if( c != null){
+                double curDistance = 0.0d;
+                switch (algorithm)
+                {
+                    case "RGB":
+                        curDistance = getDistanceOfRGB(color, c);
+                        break;
+                    case "HSB":
+                        curDistance = getDistanceOfHSL(color, c, weight);
+                        break;
+                    case "YUV":
+                        curDistance = getDistanceOfYUV(color, c, weight);
+                        break;
+                    case "CIE":
+                        curDistance = getDistanceOfCIE(color, c);
+                        break;
+                }
+                if (curDistance < listDist[count - 1])
+                {
+                    int n = count - 1;
+                    while (n >= 0 && curDistance < listDist[n])
+                        n--;
+                    n++;
+                    for (int i = count - 1; i > n; i--)
+                    {
+                        listDist[i] = listDist[i - 1];
+                        listClosestColor[i]=listClosestColor[i-1];
+                    }
+                    listDist[n] = curDistance;
+                    EmbroideryThread element = new EmbroideryThread();
+                    element.setColor(c);
+                    element.setCode(key);
+                    listClosestColor[n]=element;
+                }
+            }
+        }
+        return listClosestColor; 
+    }
 
-		return thread;
-	}
+    public static EmbroideryThread GetClosestThread(Color color, String algorithm, double[] weight)
+    {
+        // adjust these values to place more or less importance on
+        // the differences between HSV components of the colors
+        EmbroideryThread thread = new EmbroideryThread();
+        EmbroideryThread[] minThreadlist= getClosestThreadList(color, 1, algorithm, weight);
+
+        thread.setCode(minThreadlist[0].getCode());
+  //      thread.name = minDr[0]["sName"].ToString();
+        thread.setColor(minThreadlist[0].getColor());
+        return thread;
+    }
+	
 	
 	public static double getDistanceOfYUV(Color color1,Color color2, double[] weight){
 		double dR = color1.getRed() - color2.getRed();
@@ -178,7 +282,7 @@ public class EMBThreadChart
         double dU = -0.14713d * dR - 0.28886d * dG + 0.436d * dB;
         double dV = 0.615d * dR - 0.51499d * dG - 0.10001d * dB;
 
-        return Math.sqrt(dY * dY * (double)weight[0] + dU * dU * (double)weight[1] + dV * dV * (double)weight[2]);
+        return Math.sqrt(dY * dY * weight[0] + dU * dU * weight[1] + dV * dV * weight[2]);
 	}
 	
 	public static double getDistanceOfRGB(Color color1, Color color2){
@@ -188,12 +292,10 @@ public class EMBThreadChart
         return Math.sqrt(dR * dR + dG * dG + dB * dB);
     }
 
-    public static double GetDistanceOfHSL(Color color1, Color color2, double[] weight){
-    	float[] hsbValuesColor1 = new float[3];
-    	float[] hsbValuesColor2 = new float[3];
+    public static double getDistanceOfHSL(Color color1, Color color2, double[] weight){
     	
-    	hsbValuesColor1 = Color.RGBtoHSB(color1.getRed(), color1.getGreen(), color1.getBlue(), hsbValuesColor1);
-    	hsbValuesColor2 = Color.RGBtoHSB(color2.getRed(), color2.getGreen(), color2.getBlue(), hsbValuesColor2);
+    	float[] hsbValuesColor1 = Color.RGBtoHSB(color1.getRed(), color1.getGreen(), color1.getBlue(), null);
+    	float[] hsbValuesColor2 = Color.RGBtoHSB(color2.getRed(), color2.getGreen(), color2.getBlue(), null);
     	
     	float hueColor1 = hsbValuesColor1[0];
     	float saturationColor1 = hsbValuesColor1[1];	
@@ -203,12 +305,12 @@ public class EMBThreadChart
     	float saturationColor2 = hsbValuesColor2[1];
     	float brightnessColor2 = hsbValuesColor2[2];
     	
-        float dH = Math.abs(hueColor1 - hueColor2) / 360.0f;
-        if (dH > 0.5)
+        float dH = Math.abs(hueColor1 - hueColor2);// / 360.0f;
+        if (dH > 0.5) 
             dH = 1.0f - dH;
         float dS = saturationColor1 - saturationColor2;
         float dL = brightnessColor1 - brightnessColor2;
-        return Math.sqrt(dH * dH * (double)weight[0] + dS * dS * (double)weight[1] + dL * dL * (double)weight[2]);
+        return Math.sqrt(dH * dH * weight[0] + dS * dS * weight[1] + dL * dL * weight[2]);
     }
 
     public static double getDistanceOfCIE(Color color1, Color color2){

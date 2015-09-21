@@ -89,7 +89,7 @@ public class Colorway {
 	
 	//get thread color from threadList
 	public Color getThreadColor(int colorIndex){
-		return threadList.get(colorIndex).color;
+		return threadList.get(colorIndex).getColor();
 	}
 	
 	public static List<EmbroideryThread> getDefaultThreadList(){
